@@ -9,7 +9,7 @@ build:
 		${args} .
 
 .PHONY: clean
-clean: ##@development  Stop and remove containers created by up command
+clean: ##@dmake clevelopment  Stop and remove containers created by up command
 	${DC} down --remove-orphans
 
 .PHONY: logs
