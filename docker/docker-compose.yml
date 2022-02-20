@@ -1,0 +1,63 @@
+version: '3'
+
+services:
+  base: &base
+    image: ${PROJECT-mastermind}:${PROJECT_VERSION-local}
+    env_file:
+      - local.env
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../:/srv
+
+  app: &app
+    <<: *base
+    depends_on:
+      - database
+
+  manage:
+    <<: *app
+    entrypoint:
+      - /srv/scripts/wait-for-it.sh
+      - database:5432,
+      - --
+      - python
+      - /srv/src/manage.py
+    depends_on:
+      - database
+
+  server:
+    <<: *app
+    entrypoint: /srv/scripts/app-entrypoint.sh
+    ports:
+      - "8000:8000"
+
+  database:
+    image: postgres:14
+    environment:
+      POSTGRES_NAME: mastermind
+      POSTGRES_USER: mastermind
+      POSTGRES_PASSWORD: mastermind
+      POSTGRES_DB: mastermind
+    #volumes:
+    #  - data-volume:/var/lib/postgresql/data
+
+  isort:
+    <<: *base
+    entrypoint: isort
+
+  pylint:
+    <<: *base
+    entrypoint: pylint
+
+  unit_test:
+    <<: *base
+    entrypoint: [ pytest ]
+    environment:
+      COVERAGE_FILE: reports/coverage/coverage.unit
+
+  integration_test:
+    <<: *app
+    entrypoint: [ "/srv/scripts/wait-for-it.sh", "database:5432", "--", "pytest" ]
+    environment:
+      COVERAGE_FILE: reports/coverage/coverage.integration
